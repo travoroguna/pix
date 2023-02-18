@@ -1,7 +1,6 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator; 
-
-
+const Tuple = std.meta.Tuple;
 
 pub fn read_file(allocator: Allocator, path: []const u8) ![]u8{
     var file = try std.fs.cwd().openFile(path, .{});
@@ -39,25 +38,28 @@ const InfoHeader = struct {
 };
 
 
+pub const Color = Tuple(&.{u8, u8, u8});
 
 pub const Bmp = struct {
     data: []u8,
     info_header: InfoHeader,
     allocator: Allocator,
-    color_data: []u24,
+    color_data: []Color,
 
     pub fn deinit(self: *Bmp) void {
         self.allocator.free(self.data);
         self.allocator.free(self.color_data);
         self.allocator.destroy(self);
     }
-};
 
+    // pub fn get_pixel_hex(self: *Bmp, x: u32, y: u32) u24{
+    //     // std.debug.print("x: {d}, y: {d}, x*y: {d}, pos: {d}, color: {d}\n", .{x, y, x*y, self.info_header.width * x + y, self.color_data[x * self.info_header.height + y]});
+    //     return self.color_data[x * self.info_header.height + y];
+    // } 
 
-const Color = struct {
-    red: u8,
-    green: u8,
-    blue: u8
+    pub fn get_pixel_rgb(self: *Bmp, x: u32, y: u32) *Color{
+        return &self.color_data[x + self.info_header.width * y];
+    }
 };
 
 
@@ -67,6 +69,13 @@ pub fn to_hex(red: u8, green: u8, blue: u8) u24{
            ((@intCast(u24, blue) & 0xff));
 }
 
+pub fn to_rgb(hex_value: u24) Color {
+    var r = ((hex_value >> 16) & 0xFF);  // Extract the RR byte
+    var g = ((hex_value >> 8) & 0xFF);   // Extract the GG byte
+    var b = ((hex_value) & 0xFF);
+
+    return .{@intCast(u8, r), @intCast(u8, g), @intCast(u8, b)};   
+}
 
 const BmpReaderError = error {
     OutOfMemory,
