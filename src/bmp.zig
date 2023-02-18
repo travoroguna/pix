@@ -134,7 +134,7 @@ pub const BmpReader = struct {
             else => return BmpReaderError.InvalidBitCount
         };
 
-        var compression = switch (self.read_u16(i_offset + 16 )) {
+        var compression = switch (self.read_u32(i_offset + 16 )) {
             0 => Compression.BL_RGB,
             1 => Compression.BL_RLE4,
             2 => Compression.BL_RLE8,
