@@ -32,7 +32,8 @@ pub fn build(b: *std.Build) void {
     // standard location when the user invokes the "install" step (the default
     // step when running `zig build`).
     sdk.link(exe, .dynamic);
-    exe.addModule("sdl2", sdk.getNativeModule());
+    // exe.addModule("sdl2", sdk.getNativeModule());
+    exe.addModule("sdl2", sdk.getWrapperModule());
     exe.install();
 
     
