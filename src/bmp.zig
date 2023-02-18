@@ -4,6 +4,7 @@ const Tuple = std.meta.Tuple;
 
 pub fn read_file(allocator: Allocator, path: []const u8) ![]u8{
     var file = try std.fs.cwd().openFile(path, .{});
+    defer file.close();
     return try file.readToEndAlloc(allocator, (try file.stat()).size);
     
 }
