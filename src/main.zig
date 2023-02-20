@@ -1,6 +1,9 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const BmpReader = @import("bmp.zig").BmpReader;
+const bmp = @import("bmp.zig");
+const BmpReader = bmp.BmpReader;
+const Bmp = bmp.Bmp;
+
 const SDL = @import("sdl2");
 
 
@@ -16,6 +19,38 @@ fn time_left(next_time: u32) u32{
 
 }
 
+
+pub fn create_sdl_texture_from_bmp(b: *Bmp, renderer: *SDL.Renderer) !SDL.Texture{
+    var surface = try SDL.createRgbSurfaceWithFormat(
+        @intCast(u31, b.info_header.width),
+        @intCast(u31, b.info_header.height),
+        .rgb555
+    );
+
+    var b_renderer = try SDL.createSoftwareRenderer(surface);
+
+    var y: u32 = 0;
+    var x: u32 = b.info_header.width-1;
+    var x_actual: u32 = 0;
+
+    while (y < b.info_header.height) {
+        while (x > 0 ) {
+            var color = b.get_pixel_rgb(x, y).*;
+            try b_renderer.setColor(SDL.Color.rgb(color[0], color[1], color[2]));
+            try b_renderer.drawPoint(@intCast(i32, x_actual), @intCast(i32, y));
+            x-=1;
+            x_actual += 1;
+        }
+
+        y+=1;
+        x_actual = 0;
+        x=b.info_header.width - 1;
+    }
+
+    var texture = try SDL.createTextureFromSurface(renderer.*, surface);
+    return texture;
+}
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -23,11 +58,7 @@ pub fn main() !void {
     var allocator = gpa.allocator();
 
     var bmp_reader = BmpReader.init(allocator);
-    var bmp = try bmp_reader.read("image.bmp");
-
-
-    std.debug.print("{any}\n", .{bmp.info_header});
-    std.debug.print("{d} == {d}\n", .{bmp.color_data.len, bmp.info_header.width * bmp.info_header.height});
+    var bmp_f = try bmp_reader.read("image.bmp");
 
     var next_time: u32 = 0;
 
@@ -41,7 +72,7 @@ pub fn main() !void {
     var window = try SDL.createWindow(
         "BMP viewer",
         .{ .centered = {} }, .{ .centered = {} },
-        bmp.info_header.width, bmp.info_header.height,
+        bmp_f.info_header.width, bmp_f.info_header.height,
         .{ .vis = .shown, .resizable= true },
     );
 
@@ -50,36 +81,14 @@ pub fn main() !void {
     var renderer = try SDL.createRenderer(window, null, .{ .accelerated = true });
     defer renderer.destroy();
 
-
-    var surface = try SDL.createRgbSurfaceWithFormat(@intCast(u31, bmp.info_header.width), @intCast(u31, bmp.info_header.height), .rgb555);
-    var bmp_renderer = try SDL.createSoftwareRenderer(surface);
-
-    var y: u32 = 0;
-    var x: u32 = bmp.info_header.width-1;
-    var x_actual: u32 = 0;
-
-    while (y < bmp.info_header.height) {
-        while (x > 0 ) {
-            var color = bmp.get_pixel_rgb(x, y).*;
-            try bmp_renderer.setColor(SDL.Color.rgb(color[0], color[1], color[2]));
-            try bmp_renderer.drawPoint(@intCast(i32, x_actual), @intCast(i32, y));
-            x-=1;
-            x_actual += 1;
-        }
-
-        y+=1;
-        x_actual = 0;
-        x=bmp.info_header.width - 1;
-    }
-
-    var texture = try SDL.createTextureFromSurface(renderer, surface);
+    var texture = try create_sdl_texture_from_bmp(bmp_f, &renderer);
     defer texture.destroy();
 
+    
     try renderer.copy(texture, null, null);
     renderer.present();
 
-    bmp.deinit();
-    surface.destroy();
+    bmp_f.deinit();
 
     mainLoop: while (true) {
         next_time = SDL.getTicks() + tick_interval;
@@ -87,10 +96,7 @@ pub fn main() !void {
         while (SDL.pollEvent()) |ev| {
             switch (ev) {
                 .quit => break :mainLoop,
-                // .size_changed  => |data| {
-                //     var size = data.size_changed;
-                //     std.debug.print("Window resized width: {d}, height: {d}\n", .{size.width, size.height});
-                // },
+
                 .window => |w| {
                     if (w.type == .resized) {
                         // var size = w.type.resized;
