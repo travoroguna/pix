@@ -18,8 +18,9 @@ pub fn build(b: *std.Build) void {
 
     const sdk = Sdk.init(b, null);
 
+
     const exe = b.addExecutable(.{
-        .name = "bmpreader",
+        .name = "pix",
         // In this case the main source file is merely a path, however, in more
         // complicated build scripts, this could be a generated file.
         .root_source_file = .{ .path = "src/main.zig" },
@@ -27,6 +28,15 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const clap = std.build.createModule(
+        b,
+        .{
+            .source_file = std.build.FileSource.relative("external/zig-clap/clap.zig"),
+            .dependencies = &.{},
+        }
+    );
+
+    exe.addModule("clap", clap);
     
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
