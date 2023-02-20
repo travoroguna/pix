@@ -5,7 +5,7 @@ const Tuple = std.meta.Tuple;
 pub fn read_file(allocator: Allocator, path: []const u8) ![]u8{
     var file = try std.fs.cwd().openFile(path, .{});
     defer file.close();
-    return try file.readToEndAlloc(allocator, (try file.stat()).size);
+    return try file.readToEndAlloc(allocator, @intCast(usize, (try file.stat()).size));
     
 }
 
@@ -148,16 +148,16 @@ pub const BmpReader = struct {
         var width=self.read_u32(i_offset + 4);
         var height=self.read_u32(i_offset + 8);
 
-        var color_data = try self.allocator.alloc(u24, width * height);
+        var color_data = try self.allocator.alloc(Color, width * height);
 
         var count: usize = 0;
-        var dt_count: usize = 0;
         const length: usize = self.data[(14+40)..].len;
+        var dt_count: usize = length;
 
-        while (dt_count < length) {
-            color_data[count] = to_hex(self.data[dt_count], self.data[dt_count + 1], self.data[dt_count + 2]);
+        while (dt_count > 0) {
+            color_data[count] = .{self.data[dt_count - 1], self.data[dt_count-2], self.data[dt_count]};
             count += 1;
-            dt_count += 3;
+            dt_count -= 3;
         }
 
 
