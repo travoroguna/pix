@@ -1,4 +1,4 @@
 # Pix
 
-Small application written in zig used to view image files
-Currently it only supports the bmp file format.
+Small application written in zig used to view image files.
+Currently only the bmp file format is supported.
